@@ -67,3 +67,45 @@ data_with_setting_example <- new("data_with_setting",
               metastinng = token,
               data_setting = target
               )
+
+
+
+#將LIST按照種類分離
+divid.as.list <- function(inputname,sortby){
+  cat("sortby的變數類型為",class(get("inputname")[,sortby]))
+  token <- list(1)
+  for (i in 1:length(unique(get("inputname")[,sortby]))){
+    token [[i]] = subset(get("inputname"),get("inputname")[,sortby] == unique(get("inputname")[,sortby])[i]) 
+    names(token)[i] <- unique(get("inputname")[,sortby])[i]
+  }
+  token
+}
+
+#合併LIST
+comb.from.list <- function(inputlist){
+  token <- inputlist[[1]]
+  for(i in 2:length(inputlist)){
+    token <- rbind(token,inputlist[[i]])
+  }
+  token
+}
+#excel的排序函數
+sort.by <- function(inputdf,sortby){
+  inputdf[sort.list(inputdf[,sortby]),]
+}
+ sort.by(iris,"Petal.Length") 
+ 
+
+#一些函數
+
+#給出重複的元素
+duplicated.all <-function(x){
+  x[(duplicated(x,fromLast = TRUE)|duplicated(x,fromLast = FALSE)),]}
+
+#給出重複元素的對應布林向量
+duplicated.all.boolean <-function(x){
+  (duplicated(x,fromLast = TRUE)|duplicated(x,fromLast = FALSE))}
+
+#將布林向量轉為index
+TFtoindex <-function(x){c(1:length(x))[x]}
+
