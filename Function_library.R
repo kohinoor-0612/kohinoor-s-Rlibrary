@@ -94,7 +94,43 @@ sort.by <- function(inputdf,sortby){
   inputdf[sort.list(inputdf[,sortby]),]
 }
  sort.by(iris,"Petal.Length") 
- 
+
+
+#輸入 DF 計算平均 組合文字 輸出DF
+df.mean <- function(inputdf){
+  #生成存檔位置
+  output <- data.frame(matrix(ncol = length(colnames(inputdf)), nrow = 1))
+  colnames(output) <- colnames(inputdf)
+  output$N <- 0
+  
+  #抓出名稱 去除空白 紀錄種類
+  kinds <-unique(inputdf[,1])
+  kinds <-kinds[kinds != ""]
+  input_class <- sapply(inputdf[1,1:12],function(a)class(a))
+  
+  #實際運算
+  for (j in 1:length(kinds)){
+    #寫入名字 
+    output[j,1] <- kinds[j]
+    local_variable <-  subset(inputdf,inputdf[,1]==kinds[j])
+    #算總數
+    output$N[j] <-nrow(local_variable)
+    #從2開始是因為名字在第一行
+    for (i in 2:length(colnames(inputdf))){
+      #判斷是否為文字
+      if(input_class[i]=="character"){
+        #cat(input_class[i],"\n")
+        output[j,i]<-paste(unique(local_variable[,i]),collapse =",")
+        
+     }else{
+        output[j,i]<-mean(local_variable[,i],na.rm=TRUE)
+      }
+    }
+  }
+  cat("假設第一行是名稱","\n")
+  output
+}
+
 
 #一些函數
 
