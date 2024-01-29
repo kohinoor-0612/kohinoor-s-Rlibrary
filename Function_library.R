@@ -21,6 +21,7 @@ invisible(lapply(packages, library, character.only = TRUE))
 
 }
 
+#1__________ 物件導向設計相關_____________________
 #定義設定物件
 setClass("setting",
          slots = list(
@@ -69,6 +70,7 @@ data_with_setting_example <- new("data_with_setting",
               )
 
 
+#2__________ 和群組相關的函數_____________________
 
 #將LIST按照種類分離
 divid.as.list <- function(inputname,sortby){
@@ -95,6 +97,38 @@ sort.by <- function(inputdf,sortby){
 }
  sort.by(iris,"Petal.Length") 
 
+
+#偷用別人的函數
+#原本來自ecospace模組包授權 CC0 作者放棄一切版權
+rbind_listdf <-
+  function (lists = NULL, seq.by = 100) 
+  {
+    nr <- length(lists)
+    seq.start <- seq.int(1, nr, by = seq.by)
+    lseq <- length(seq.start)
+    seq.end <- sort(unique(c((seq.start - 1), nr)))
+    seq.end <- seq.end[seq.end >= min(seq.start) & seq.end <= 
+                         nr]
+    seq.start <- seq.start[1:length(seq.end)]
+    alphas <- expand.grid(LETTERS[1:26], LETTERS[1:26], LETTERS[1:26], 
+                          LETTERS[1:26])
+    alphas <- paste(alphas[, 4], alphas[, 3], alphas[, 2], alphas[, 
+                                                                  1], sep = "")
+    if (lseq > length(alphas)) 
+      stop("only 456,976 temporary variables to store more than that many parts. Make seq.by larger (or modify original rbind_listdf function)\n")
+    dfs <- paste("df", alphas[seq(lseq)], sep = "")
+    for (b in 1:lseq) {
+      assign(dfs[b], data.frame())
+      for (c in seq.start[b]:seq.end[b]) {
+        assign(dfs[b], rbind(get(dfs[b]), lists[[c]]))
+      }
+    }
+    out <- data.frame()
+    for (b in 1:lseq) {
+      out <- rbind(out, get(dfs[b]))
+    }
+    return(out)
+  }
 
 #輸入 DF 計算平均 組合文字 輸出DF
 df.mean <- function(inputdf){
@@ -132,7 +166,7 @@ df.mean <- function(inputdf){
 }
 
 
-#一些函數
+#3________一些數學小工具_____
 
 #給出重複的元素
 duplicated.all <-function(x){
