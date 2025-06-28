@@ -23,7 +23,9 @@ invisible(lapply(packages, library, character.only = TRUE))
 
 #2__________ 和群組相關的函數_____________________
 
-#將LIST按照種類分離
+#將LIST按照種類分離 
+#2025 chatgpt說r有原生的slpit函數可用 split(dataframe, dataframe$group_column)
+#以前的我好笨喔
 divid.as.list <- function(inputname,sortby){
   cat("sortby的變數類型為",class(get("inputname")[,sortby]))
   token <- list(1)
@@ -42,6 +44,7 @@ comb.from.list <- function(inputlist){
   }
   token
 }
+
 #excel的排序函數
 sort.by <- function(inputdf,sortby){
   inputdf[sort.list(inputdf[,sortby]),]
@@ -114,7 +117,7 @@ duplicated.all.boolean <-function(x){
 }
 
 
-#4______________________複雜強大的統計函數
+#4__複雜強大的統計函數------
 
 #輸入 DF 計算平均 組合文字 輸出DF
 df.mean <- function(inputdf){
@@ -190,4 +193,86 @@ perform_normality_tests <- function(tested_inputdataframe, majorgroupe, minorgro
 }
 
 
+#-----日期處理相關----
 
+to_julian_ordinal <- function(input_date, current_year = as.integer(format(Sys.Date(), "%Y"))) {
+  error_code <- 10000
+  
+  if (length(input_date) != 1) {
+    message("錯誤代碼 10001：輸入長度不是 1")
+    return(error_code + 1)
+  }
+  
+  if (is.na(input_date) || (is.character(input_date) && input_date == "")) {
+    return(NA)
+  }
+  
+  if (is.numeric(input_date)) {
+    message("錯誤代碼 10002：純數字輸入，嘗試當作 YYYYMMDD 解析")
+    parsed_date <- tryCatch(as.Date(as.character(input_date), format = "%Y%m%d"), error = function(e) NA)
+    if (is.na(parsed_date)) {
+      return(error_code + 2)
+    }
+  } else if (inherits(input_date, "Date")) {
+    parsed_date <- input_date
+  } else if (inherits(input_date, c("POSIXct", "POSIXlt"))) {
+    parsed_date <- as.Date(input_date)
+  } else 
+    if (is.character(input_date)) {
+      # 替換中文符號
+      clean_date <- gsub("月|日|號", "/", input_date)
+      clean_date <- sub("/$", "", clean_date)  # 去除尾巴斜線
+      clean_date <- gsub("\\s+", "", clean_date) # 去除空白
+      
+      # 補年份 (如果只有月/日)
+      if (grepl("^[0-9]{1,2}/[0-9]{1,2}$", clean_date)) {
+        clean_date <- paste0(current_year, "/", clean_date)
+      }
+      
+      possible_formats <- c(
+        "%Y-%m-%d",
+        "%Y/%m/%d",
+        "%Y%m%d",
+        "%m/%d/%Y"
+      )
+      
+      parsed_date <- NA
+      for (fmt in possible_formats) {
+        parsed_date <- tryCatch(as.Date(clean_date, format = fmt), error = function(e) NA)
+        if (!is.na(parsed_date)) break
+      }
+      
+      if (is.na(parsed_date)) {
+        message("錯誤代碼 10003：無法解析字串格式日期")
+        return(error_code + 3)
+      }
+    }
+  else {
+    message("錯誤代碼 10004：不支援的輸入類型")
+    return(error_code + 4)
+  }
+  
+  as.numeric(format(parsed_date, "%j"))
+}
+
+
+#----字串處理相關------
+reorder_and_clean <- function(s, order_ref = c("f", "m", "h")) {
+  if (is.na(s)) return(NA_character_)
+  
+  # 拆字串成字元，去除空白
+  chars <- trimws(unlist(strsplit(s, split = ",")))
+  
+  # 過濾掉非 order_ref 和問號以外的字元
+  allowed_chars <- c(order_ref, "?")
+  chars <- chars[chars %in% allowed_chars]
+  
+  # 去除問號
+  chars <- chars[chars != "?"]
+  
+  # 按照 order_ref 排序
+  chars <- chars[order(match(chars, order_ref))]
+  
+  # 合併成字串
+  paste(chars, collapse = "")
+}

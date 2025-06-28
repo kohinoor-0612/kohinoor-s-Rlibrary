@@ -86,3 +86,71 @@ merge_rds_from_files <- function(rds_paths) {
   merged_df <- do.call(rbind, all_data)
   return(merged_df)
 }
+
+
+
+#這個函數會拿輸入的DF當母體 抽樣之後加入噪音(和母體一樣大的標準差) 生出一個合成的假資料DF
+
+generate_synthetic_data <- function(fake_data, seed = 123, min_rep = 10, max_rep = 80) {
+  set.seed(seed)
+  if (!is.data.frame(fake_data)) {
+    stop("輸入的 fake_data 必須是資料框")
+  }
+  if (min_rep > max_rep) {
+    stop("min_rep 不可大於 max_rep")
+  }
+  
+  prime_sample <- unique(na.omit(fake_data[[1]]))
+  generated_col1 <- c()
+  
+  for (sample_val in prime_sample) {
+    count <- sum(fake_data[[1]] == sample_val, na.rm = TRUE)
+    if (count <= 1) {
+      repeat_n <- 1
+    } else {
+      repeat_n <- sample(min_rep:max_rep, 1)
+    }
+    generated_col1 <- c(generated_col1, rep(sample_val, repeat_n))
+  }
+  
+  empty_fake_data <- fake_data[rep(1, length(generated_col1)), ]
+  empty_fake_data[] <- NA
+  empty_fake_data[[1]] <- generated_col1
+  
+  num_cols <- ncol(fake_data)
+  
+  # 預先計算母體各數值欄標準差
+  numeric_sd <- sapply(fake_data[, 2:num_cols], function(col) {
+    if (is.numeric(col)) sd(col, na.rm = TRUE) else NA
+  })
+  
+  for (i in seq_len(nrow(empty_fake_data))) {
+    sample_val <- empty_fake_data[i, 1]
+    matched_rows <- fake_data[fake_data[[1]] == sample_val, ]
+    if (nrow(matched_rows) == 0) next
+    
+    for (col_idx in 2:num_cols) {
+      valid_rows <- matched_rows[!is.na(matched_rows[[col_idx]]), ]
+      if (nrow(valid_rows) == 0) {
+        empty_fake_data[i, col_idx] <- NA
+      } else {
+        rand_row <- sample(seq_len(nrow(valid_rows)), 1)
+        empty_fake_data[i, col_idx] <- valid_rows[rand_row, col_idx]
+      }
+    }
+  }
+  
+  # 對數值型欄位加入高斯噪音
+  for (col_idx in 2:num_cols) {
+    if (!is.na(numeric_sd[col_idx - 1]) && numeric_sd[col_idx - 1] > 0) {
+      noise <- rnorm(nrow(empty_fake_data), mean = 0, sd = numeric_sd[col_idx - 1])
+      # 加噪音後，確保欄位還是數值型
+      empty_fake_data[[col_idx]] <- as.numeric(empty_fake_data[[col_idx]]) + noise
+    }
+  }
+  
+  orig_name <- deparse(substitute(fake_data))
+  assign(paste0("synth_", orig_name), empty_fake_data, envir = .GlobalEnv)
+  
+  return(empty_fake_data)
+}
